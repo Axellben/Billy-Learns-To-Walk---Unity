@@ -129,8 +129,8 @@ public class Matrix {
         for (int i = 0; i < a.rows; ++i) {
             for (int j = 0; j < a.cols; ++j) {
                 float x = a.data[i, j];
-                if (deriv) {
-                    b.data[i, j] = (float) Math.Tanh (x);
+                if (deriv == false) {
+                    b.data[i, j] = (float) ((2.0f / (1 + Math.Exp (-2 * x))) - 1);
                 } else {
                     b.data[i, j] = (float) (1 - (x * x));
                 }

@@ -37,15 +37,13 @@ public class AgentController : MonoBehaviour {
     }
 
     private void CalculateFitness () {
-        float sumX = 0;
-        float sumY = 0;
+        float T = 0;
         foreach (GameObject obj in agents) {
-            sumX += obj.transform.position.x;
-            sumY += obj.transform.position.y;
+            T += obj.GetComponent<Agent> ().GetScore ();
         }
 
         foreach (GameObject obj in agents) {
-            obj.transform.GetComponent<Agent> ().fitness = obj.transform.position.x / sumX;
+            obj.transform.GetComponent<Agent> ().fitness = obj.GetComponent<Agent> ().GetScore () / T;
         }
     }
 

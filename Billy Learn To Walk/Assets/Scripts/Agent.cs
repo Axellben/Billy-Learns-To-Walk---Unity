@@ -4,17 +4,24 @@ using UnityEngine;
 
 public class Agent : MonoBehaviour {
     public NeuronalNetwork nn;
-    private Rigidbody2D rb;
 
     public Transform leftLeg, rightLeg;
 
     public float speed = 16f;
     public float fitness;
+    public float headUpTime = 0;
+    public float touchDown = 0;
+
+    Rigidbody2D rb;
 
     // Start is called before the first frame update
     void Awake () {
+        rb = GetComponent<Rigidbody2D> ();
+        // leftC = leftLeg.gameObject.GetComponent<ControllerSpring> ();
+        // rightC = rightLeg.gameObject.GetComponent<ControllerSpring> ();
+
         transform.GetComponent<SpriteRenderer> ().color = new Color (Random.Range (0f, 1f), Random.Range (0f, 1f), Random.Range (0f, 1f));
-        nn = new NeuronalNetwork (4, 8, 2);
+        nn = new NeuronalNetwork (6, 12, 2);
     }
 
     // Update is called once per frame
@@ -23,6 +30,9 @@ public class Agent : MonoBehaviour {
         float leftFootAngle = FindNormalizedAngle (leftLeg.rotation.eulerAngles.z);
         float rightFootAngle = FindNormalizedAngle (rightLeg.rotation.eulerAngles.z);
 
+        float bodyVx = rb.velocity.normalized.x;
+        float bodyVy = rb.velocity.normalized.y;
+
         float height = transform.position.y;
         if (height > 1) {
             height = 1;
@@ -30,18 +40,25 @@ public class Agent : MonoBehaviour {
             height = -1;
         }
 
-        Matrix I = new Matrix (4, 1);
+        Matrix I = new Matrix (6, 1);
         I.data[0, 0] = bodyAngle;
         I.data[1, 0] = leftFootAngle;
         I.data[2, 0] = rightFootAngle;
-        I.data[3, 0] = height;
+
+        I.data[4, 0] = bodyVx;
+        I.data[5, 0] = bodyVy;
 
         Matrix output = nn.FeedForward (I);
         leftFootAngle = output.data[0, 0];
         rightFootAngle = output.data[1, 0];
 
+        // leftC.position = leftFootAngle;
+        // rightC.position = rightFootAngle;
+        // print (leftFootAngle + " " + rightFootAngle);
+
         // leftLeg.eulerAngles += new Vector3 (0, 0, leftFootAngle * speed);
         // rightLeg.eulerAngles += new Vector3 (0, 0, rightFootAngle * speed);
+        // rb.AddForce (new Vector2 (leftFootAngle, rightFootAngle));
 
         // leftLeg.Rotate (Vector3.forward * leftFootAngle * speed);
         // rightLeg.Rotate (Vector3.forward * rightFootAngle * speed);
@@ -57,10 +74,19 @@ public class Agent : MonoBehaviour {
         motor.motorSpeed = rightFootAngle * speed;
         rightH.motor = motor;
 
+        if (IsUp (gameObject, 20))
+            headUpTime += Time.fixedDeltaTime;
+
     }
 
-    public float GetDist () {
-        return transform.position.x;
+    public float GetScore () {
+        float position = transform.position.x;
+        return
+        position
+            *
+            (IsDown (gameObject) ? 0.5f : 1f) +
+            (IsUp (gameObject) ? 2f : 0f) +
+            (headUpTime - touchDown) / 50;
     }
 
     private float FindNormalizedAngle (float f) {
@@ -68,5 +94,19 @@ public class Agent : MonoBehaviour {
         if (a < 180) a = -a / 180;
         else a = (360 - a) / 180;
         return a;
+    }
+
+    public bool IsUp (GameObject obj, float angle = 30) {
+        return obj.transform.eulerAngles.z < 0 + angle ||
+            obj.transform.eulerAngles.z > 360 - angle;
+    }
+
+    public bool IsDown (GameObject obj, float angle = 45) {
+        return obj.transform.eulerAngles.z > 180 - angle &&
+            obj.transform.eulerAngles.z < 180 + angle;
+    }
+
+    private void OnCollisionStay2D (Collision2D other) {
+        touchDown += Time.fixedDeltaTime;
     }
 }
